@@ -35,3 +35,7 @@ Thumbs.db
 build/
 dist/
 *.spec.bak
+
+# Code signing certificates
+*.p12
+*.keychain-db
