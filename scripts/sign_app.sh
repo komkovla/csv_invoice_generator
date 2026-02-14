@@ -50,6 +50,25 @@ find "$APP_PATH" -type f \( -name "*.dylib" -o -name "*.so" \) | \
         }
     done
 
+# Step 1b: Sign any other Mach-O binaries (e.g. embedded Python.framework/Versions/3.12/Python)
+# Notarization requires every executable and loadable binary to be signed with Developer ID + timestamp
+echo "Signing other Mach-O binaries (e.g. embedded Python)..."
+find "$APP_PATH" -type f -print0 | while IFS= read -r -d '' f; do
+    file -b "$f" | grep -q "Mach-O" && echo "$f"
+done | awk '{print length($0), $0}' | sort -rn | cut -d' ' -f2- | while read -r binpath; do
+    # Skip main executable (signed with entitlements in Step 2)
+    [ "$binpath" = "$EXECUTABLE" ] && continue
+    # Skip .dylib and .so (already signed in Step 1)
+    case "$binpath" in *.dylib|*.so) continue ;; esac
+    echo "  Signing: $binpath"
+    codesign --force --options runtime --timestamp \
+        --sign "$IDENTITY" \
+        "$binpath" || {
+        echo "Error: Failed to sign $binpath" >&2
+        exit 1
+    }
+done
+
 # Step 2: Sign the main executable with hardened runtime + entitlements
 echo "Signing main executable: $EXECUTABLE"
 codesign --force --options runtime --timestamp \

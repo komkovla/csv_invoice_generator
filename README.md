@@ -193,6 +193,20 @@ Without these secrets, the workflow will fail at the “Import code signing cert
 
 The published DMG is signed and notarized so users can open it without Gatekeeper warnings.
 
+### Checking notarization failures
+
+If notarization returns **Invalid**, Apple does not include the reason in the submit output. To see why it failed:
+
+- **In CI:** The release workflow runs a follow-up step when notarization fails and prints the Apple notarization log in the job output. Check the “Notarization log (on failure)” step in the Actions run.
+- **Locally:** Use the submission ID from the workflow output (e.g. `d27cafbf-4ac0-4ebd-831d-0c109186ad62`) and run:
+  ```bash
+  xcrun notarytool log <submission-id> \
+    --apple-id "your@email.com" \
+    --password "your-app-specific-password" \
+    --team-id "YOUR_TEAM_ID"
+  ```
+  The log is JSON and lists each issue (e.g. signature problems, entitlements, or “The binary uses an SDK older than…”). Fix those issues and re-run the release.
+
 ## Development Plan
 
 Incremental milestones — each step produces a working, testable artifact.

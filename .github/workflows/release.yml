@@ -91,16 +91,42 @@ jobs:
           codesign --force --sign "$SIGNING_IDENTITY" "dist/InvoiceGenerator-${{ github.ref_name }}.dmg"
 
       - name: Notarize .dmg
+        id: notarize
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
-          xcrun notarytool submit "dist/InvoiceGenerator-${{ github.ref_name }}.dmg" \
+          DMG_PATH="dist/InvoiceGenerator-${{ github.ref_name }}.dmg"
+          SUBMIT_OUTPUT=$(xcrun notarytool submit "$DMG_PATH" \
             --apple-id "$APPLE_ID" \
             --password "$APPLE_APP_PASSWORD" \
-            --team-id "$APPLE_TEAM_ID" \
-            --wait
+            --team-id "$APPLE_TEAM_ID" 2>&1) || true
+          echo "$SUBMIT_OUTPUT"
+          SUBMISSION_ID=$(echo "$SUBMIT_OUTPUT" | awk '/id:/ { print $2; exit }')
+          if [ -z "$SUBMISSION_ID" ]; then
+            echo "Could not get submission ID from notarytool output" >&2
+            exit 1
+          fi
+          echo "SUBMISSION_ID=$SUBMISSION_ID" >> $GITHUB_ENV
+          echo "submission_id=$SUBMISSION_ID" >> $GITHUB_OUTPUT
+          xcrun notarytool wait "$SUBMISSION_ID" \
+            --apple-id "$APPLE_ID" \
+            --password "$APPLE_APP_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID"
+
+      - name: Notarization log (on failure)
+        if: failure() && env.SUBMISSION_ID != ''
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          echo "=== Apple notarization log (reason for Invalid) ==="
+          xcrun notarytool log "$SUBMISSION_ID" \
+            --apple-id "$APPLE_ID" \
+            --password "$APPLE_APP_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID"
 
       - name: Staple notarization ticket
         run: |
