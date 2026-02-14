@@ -61,10 +61,13 @@ done | awk '{print length($0), $0}' | sort -rn | cut -d' ' -f2- | while read -r 
     # Skip .dylib and .so (already signed in Step 1)
     case "$binpath" in *.dylib|*.so) continue ;; esac
     echo "  Signing: $binpath"
-    codesign --force --options runtime --timestamp \
+    # Remove any existing signature first (e.g. ad-hoc or partial) so Developer ID sign succeeds
+    codesign --remove-signature "$binpath" 2>/dev/null || true
+    err=$(codesign --force --options runtime --timestamp \
         --sign "$IDENTITY" \
-        "$binpath" || {
+        "$binpath" 2>&1) || {
         echo "Error: Failed to sign $binpath" >&2
+        echo "$err" >&2
         exit 1
     }
 done
