@@ -161,6 +161,38 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
+## Releases and code signing
+
+macOS releases are built and published automatically when you push a version tag (e.g. `v1.0.0`). The [release workflow](.github/workflows/release.yml) runs on `macos-latest`, builds the `.app` with PyInstaller, **code-signs** the app and DMG, **notarizes** the DMG with Apple, then uploads it to the GitHub Release. Signing uses the **Prod** environment so that secrets are scoped to production releases.
+
+### Required secrets (Prod environment)
+
+All of the following must be set as **GitHub Actions secrets** for the **Prod** environment (Settings → Environments → Prod → Environment secrets). The workflow specifies `environment: Prod`, so only these environment secrets are used.
+
+| Secret | Description | How to obtain |
+|--------|-------------|----------------|
+| `APPLE_CERTIFICATE_BASE64` | Developer ID Application certificate and private key, base64-encoded | Export the certificate + key from Keychain Access as a `.p12` file, then run: `base64 -i YourCertificate.p12 | pbcopy` (paste into the secret value). |
+| `APPLE_CERTIFICATE_PASSWORD` | Password used when exporting the `.p12` file | The password you set in Keychain Access when exporting the certificate. |
+| `APPLE_TEAM_ID` | Apple Developer Team ID (10 characters) | [Apple Developer](https://developer.apple.com/account) → Membership details, or from the certificate name in Keychain. |
+| `APPLE_ID` | Apple ID email used for notarization | The Apple ID associated with your developer account. |
+| `APPLE_APP_PASSWORD` | App-specific password for notarization | [appleid.apple.com](https://appleid.apple.com) → Sign-In and Security → App-Specific Passwords → Generate. Use this instead of your normal Apple ID password. |
+
+Without these secrets, the workflow will fail at the “Import code signing certificate” or “Notarize .dmg” steps. Repository-level secrets are not used for this job; the job runs in the Prod environment only.
+
+### Getting a Developer ID certificate and `.p12`
+
+1. In [Certificates, Identifiers & Profiles](https://developer.apple.com/account/resources/certificates/list), create a **Developer ID Application** certificate (you may need to create a CSR from Keychain Access on your Mac first).
+2. Download the `.cer` file and double-click it to install into Keychain. It will pair with the private key created when you made the CSR.
+3. In Keychain Access, find “Developer ID Application: …”, right-click → **Export**, save as `.p12` with a password, and use that file (and password) for `APPLE_CERTIFICATE_BASE64` and `APPLE_CERTIFICATE_PASSWORD` as above.
+
+### Release flow
+
+1. Tag and push: `git tag v1.0.0 && git push origin v1.0.0`
+2. The release workflow runs (and may wait for Prod environment approval if you have protection rules).
+3. Build → sign app and DMG → notarize with Apple → staple ticket → upload DMG to the GitHub Release.
+
+The published DMG is signed and notarized so users can open it without Gatekeeper warnings.
+
 ## Development Plan
 
 Incremental milestones — each step produces a working, testable artifact.

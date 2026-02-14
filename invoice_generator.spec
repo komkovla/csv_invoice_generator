@@ -41,13 +41,13 @@ def collect_dylib_dependencies(dylib_path):
     """Recursively collect all dependencies of a dylib."""
     collected = set()
     to_process = [dylib_path]
-    
+
     while to_process:
         current = to_process.pop()
         if current in collected or not Path(current).exists():
             continue
         collected.add(current)
-        
+
         try:
             # Use otool to find dependencies
             result = subprocess.run(
@@ -77,7 +77,7 @@ def collect_dylib_dependencies(dylib_path):
                         to_process.append(dep_path)
         except (subprocess.CalledProcessError, FileNotFoundError):
             pass
-    
+
     return collected
 
 # Required WeasyPrint libraries (core dependencies)
@@ -108,7 +108,7 @@ for lib_name, patterns in required_libs.items():
     for search_path in [homebrew_lib, homebrew_local]:
         if not search_path.exists():
             continue
-        
+
         # Try each pattern for this library
         for pattern in patterns:
             candidate = search_path / pattern
@@ -192,9 +192,9 @@ app = BUNDLE(
     coll,
     name="Invoice Generator.app",
     icon=None,
-    bundle_identifier="com.talgat.invoicegenerator",
+    bundle_identifier="xyz.komkowvlad.csvtopdf",
     info_plist={
-        "CFBundleShortVersionString": "1.0.0",
+        "CFBundleShortVersionString": "1.0.3",
         "NSHighResolutionCapable": True,
     },
 )
