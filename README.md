@@ -2,6 +2,12 @@
 
 A command-line tool that reads a CSV file and generates individual PDF invoices for each row. Built with Python, Jinja2 templating, and WeasyPrint for HTML-to-PDF conversion.
 
+## UI
+
+UI is built using `customtkinter` 🎨
+
+<img width="632" height="660" alt="Screenshot 2026-02-16 at 18 55 11" src="https://github.com/user-attachments/assets/cc7be8b4-4e69-4bc7-bdb2-6bf1b74904ab" />
+
 ---
 
 ## Stack
@@ -192,70 +198,6 @@ Without these secrets, the workflow will fail at the “Import code signing cert
 3. Build → sign app and DMG → notarize with Apple → staple ticket → upload DMG to the GitHub Release.
 
 The published DMG is signed and notarized so users can open it without Gatekeeper warnings.
-
-### Checking notarization failures
-
-If notarization returns **Invalid**, Apple does not include the reason in the submit output. To see why it failed:
-
-- **In CI:** The release workflow runs a follow-up step when notarization fails and prints the Apple notarization log in the job output. Check the “Notarization log (on failure)” step in the Actions run.
-- **Locally:** Use the submission ID from the workflow output (e.g. `d27cafbf-4ac0-4ebd-831d-0c109186ad62`) and run:
-  ```bash
-  xcrun notarytool log <submission-id> \
-    --apple-id "your@email.com" \
-    --password "your-app-specific-password" \
-    --team-id "YOUR_TEAM_ID"
-  ```
-  The log is JSON and lists each issue (e.g. signature problems, entitlements, or “The binary uses an SDK older than…”). Fix those issues and re-run the release.
-
-## Development Plan
-
-Incremental milestones — each step produces a working, testable artifact.
-
-### Phase 1: Foundation ✅
-
-**Goal:** Parse CSV, validate data, print structured output to terminal.
-
-- [x] Set up project structure (`src/`, `tests/`, `requirements.txt`)
-- [x] Define Pydantic models for `InvoiceRow` and `SellerInfo`
-- [x] Implement CSV parser with validation and clear error messages
-- [x] Wire up CLI with argparse
-- [x] Add unit tests for CSV parsing and model validation
-
-**Deliverable:** Running `python -m src.main --csv sample.csv --name ... --address ... --ico ...` prints parsed invoice data to stdout.
-
-### Phase 2: HTML Rendering ✅
-
-**Goal:** Render each invoice row into a standalone HTML file using Jinja2.
-
-- [x] Create the `invoice.html` Jinja2 template with clean, professional styling
-- [x] Implement the renderer module (load template, inject data, return HTML string)
-- [x] Integrate renderer into the main pipeline
-- [x] Add unit tests for HTML rendering (verify key fields appear in output)
-
-**Deliverable:** The tool generates one `.html` file per invoice row in the output directory.
-
-### Phase 3: PDF Generation ✅
-
-**Goal:** Convert rendered HTML into PDF files.
-
-- [x] Implement WeasyPrint PDF conversion module
-- [x] Integrate into the main pipeline (CSV → HTML → PDF)
-- [x] Handle output directory creation and file naming
-- [x] Add integration test (generate PDF, verify file exists and is valid)
-
-**Deliverable:** The tool generates one `.pdf` file per invoice row. Core functionality is complete.
-
-### Phase 4: Polish ✅
-
-**Goal:** Production-ready error handling, logging, and UX.
-
-- [x] Add progress output (e.g., "Generated 3/10 invoices...")
-- [x] Graceful error handling for missing files, malformed CSV, bad data
-- [x] Support custom template path (`--template`)
-- [x] Add `sample.csv` with realistic example data
-- [x] Final README review
-
-**Deliverable:** Robust, user-friendly tool ready for daily use.
 
 ## License
 
